@@ -18,6 +18,8 @@ from rich.panel import Panel
 from rich.text import Text
 
 from strix.config import Config, apply_saved_config, save_current_config
+from strix.config.config import resolve_llm_config
+from strix.llm.utils import resolve_strix_model
 
 
 apply_saved_config()
@@ -51,10 +53,13 @@ def validate_environment() -> None:  # noqa: PLR0912, PLR0915
     missing_required_vars = []
     missing_optional_vars = []
 
-    if not Config.get("strix_llm"):
+    strix_llm = Config.get("strix_llm")
+    uses_strix_models = strix_llm and strix_llm.startswith("strix/")
+
+    if not strix_llm:
         missing_required_vars.append("STRIX_LLM")
 
-    has_base_url = any(
+    has_base_url = uses_strix_models or any(
         [
             Config.get("llm_api_base"),
             Config.get("openai_api_base"),
@@ -135,7 +140,10 @@ def validate_environment() -> None:  # noqa: PLR0912, PLR0915
                     )
 
         error_text.append("\nExample setup:\n", style="white")
-        error_text.append("export STRIX_LLM='openai/gpt-5'\n", style="dim white")
+        if uses_strix_models:
+            error_text.append("export STRIX_LLM='strix/gpt-5'\n", style="dim white")
+        else:
+            error_text.append("export STRIX_LLM='openai/gpt-5'\n", style="dim white")
 
         if missing_optional_vars:
             for var in missing_optional_vars:
@@ -201,14 +209,9 @@ async def warm_up_llm() -> None:
     console = Console()
 
     try:
-        model_name = Config.get("strix_llm")
-        api_key = Config.get("llm_api_key")
-        api_base = (
-            Config.get("llm_api_base")
-            or Config.get("openai_api_base")
-            or Config.get("litellm_base_url")
-            or Config.get("ollama_api_base")
-        )
+        model_name, api_key, api_base = resolve_llm_config()
+        litellm_model, _ = resolve_strix_model(model_name)
+        litellm_model = litellm_model or model_name
 
         test_messages = [
             {"role": "system", "content": "You are a helpful assistant."},
@@ -218,7 +221,7 @@ async def warm_up_llm() -> None:
         llm_timeout = int(Config.get("llm_timeout") or "300")
 
         completion_kwargs: dict[str, Any] = {
-            "model": model_name,
+            "model": litellm_model,
             "messages": test_messages,
             "timeout": llm_timeout,
         }
@@ -459,7 +462,7 @@ def display_completion_message(args: argparse.Namespace, results_path: Path) -> 
     console.print("\n")
     console.print(panel)
     console.print()
-    console.print("[#60a5fa]strix.ai[/]  [dim]·[/]  [#60a5fa]discord.gg/strix-ai[/]")
+    console.print("[#60a5fa]models.strix.ai[/]  [dim]·[/]  [#60a5fa]discord.gg/strix-ai[/]")
     console.print()
 
 

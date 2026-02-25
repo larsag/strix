@@ -1,4 +1,6 @@
 from strix.config import Config
+from strix.config.config import resolve_llm_config
+from strix.llm.utils import resolve_strix_model
 
 
 class LLMConfig:
@@ -10,10 +12,15 @@ class LLMConfig:
         timeout: int | None = None,
         scan_mode: str = "deep",
     ):
-        self.model_name = model_name or Config.get("strix_llm")
+        resolved_model, self.api_key, self.api_base = resolve_llm_config()
+        self.model_name = model_name or resolved_model
 
         if not self.model_name:
             raise ValueError("STRIX_LLM environment variable must be set and not empty")
+
+        api_model, canonical = resolve_strix_model(self.model_name)
+        self.litellm_model: str = api_model or self.model_name
+        self.canonical_model: str = canonical or self.model_name
 
         self.enable_prompt_caching = enable_prompt_caching
         self.skills = skills or []

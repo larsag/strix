@@ -15,7 +15,7 @@
 
 <a href="https://docs.strix.ai"><img src="https://img.shields.io/badge/Docs-docs.strix.ai-2b9246?style=for-the-badge&logo=gitbook&logoColor=white" alt="Docs"></a>
 <a href="https://strix.ai"><img src="https://img.shields.io/badge/Website-strix.ai-f0f0f0?style=for-the-badge&logoColor=000000" alt="Website"></a>
-[![](https://dcbadge.limes.pink/api/server/8Suzzd9z)](https://discord.gg/strix-ai)
+[![](https://dcbadge.limes.pink/api/server/strix-ai)](https://discord.gg/strix-ai)
 
 <a href="https://deepwiki.com/usestrix/strix"><img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki"></a>
 <a href="https://github.com/usestrix/strix"><img src="https://img.shields.io/github/stars/usestrix/strix?style=flat-square" alt="GitHub Stars"></a>
@@ -72,7 +72,9 @@ Strix are autonomous AI agents that act just like real hackers - they run your c
 
 **Prerequisites:**
 - Docker (running)
-- An LLM provider key (e.g. [get OpenAI API key](https://platform.openai.com/api-keys) or use a local LLM)
+- An LLM API key:
+  - Any [supported provider](https://docs.strix.ai/llm-providers/overview) (OpenAI, Anthropic, Google, etc.)
+  - Or [Strix Router](https://models.strix.ai) — single API key for multiple providers with $10 free credit on signup
 
 ### Installation & First Scan
 
@@ -80,11 +82,8 @@ Strix are autonomous AI agents that act just like real hackers - they run your c
 # Install Strix
 curl -sSL https://strix.ai/install | bash
 
-# Or via pipx
-pipx install strix-agent
-
 # Configure your AI provider
-export STRIX_LLM="openai/gpt-5"
+export STRIX_LLM="openai/gpt-5"  # or "strix/gpt-5" via Strix Router (https://models.strix.ai)
 export LLM_API_KEY="your-api-key"
 
 # Run your first security assessment
@@ -216,7 +215,7 @@ export STRIX_REASONING_EFFORT="high"  # control thinking effort (default: high, 
 **Recommended models for best results:**
 
 - [OpenAI GPT-5](https://openai.com/api/) — `openai/gpt-5`
-- [Anthropic Claude Sonnet 4.5](https://claude.com/platform/api) — `anthropic/claude-sonnet-4-5`
+- [Anthropic Claude Sonnet 4.6](https://claude.com/platform/api) — `anthropic/claude-sonnet-4-6`
 - [Google Gemini 3 Pro Preview](https://cloud.google.com/vertex-ai) — `vertex_ai/gemini-3-pro-preview`
 
 See the [LLM Providers documentation](https://docs.strix.ai/llm-providers/overview) for all supported providers including Vertex AI, Bedrock, Azure, and local models.

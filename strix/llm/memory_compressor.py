@@ -3,7 +3,7 @@ from typing import Any
 
 import litellm
 
-from strix.config import Config
+from strix.config.config import Config, resolve_llm_config
 
 
 logger = logging.getLogger(__name__)
@@ -91,7 +91,7 @@ def _summarize_messages(
     if not messages:
         empty_summary = "<context_summary message_count='0'>{text}</context_summary>"
         return {
-            "role": "assistant",
+            "role": "user",
             "content": empty_summary.format(text="No messages to summarize"),
         }
 
@@ -104,13 +104,7 @@ def _summarize_messages(
     conversation = "\n".join(formatted)
     prompt = SUMMARY_PROMPT_TEMPLATE.format(conversation=conversation)
 
-    api_key = Config.get("llm_api_key")
-    api_base = (
-        Config.get("llm_api_base")
-        or Config.get("openai_api_base")
-        or Config.get("litellm_base_url")
-        or Config.get("ollama_api_base")
-    )
+    _, api_key, api_base = resolve_llm_config()
 
     try:
         completion_args: dict[str, Any] = {
@@ -129,7 +123,7 @@ def _summarize_messages(
             return messages[0]
         summary_msg = "<context_summary message_count='{count}'>{text}</context_summary>"
         return {
-            "role": "assistant",
+            "role": "user",
             "content": summary_msg.format(count=len(messages), text=summary),
         }
     except Exception:
@@ -164,7 +158,7 @@ class MemoryCompressor:
     ):
         self.max_images = max_images
         self.model_name = model_name or Config.get("strix_llm")
-        self.timeout = timeout or int(Config.get("strix_memory_compressor_timeout") or "30")
+        self.timeout = timeout or int(Config.get("strix_memory_compressor_timeout") or "120")
 
         if not self.model_name:
             raise ValueError("STRIX_LLM environment variable must be set and not empty")

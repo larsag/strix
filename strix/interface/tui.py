@@ -531,16 +531,30 @@ class VulnerabilityDetailScreen(ModalScreen):  # type: ignore[misc]
                 lines.append("```")
 
         # Code Analysis
-        if vuln.get("code_file") or vuln.get("code_diff"):
+        if vuln.get("code_locations"):
             lines.extend(["", "## Code Analysis", ""])
-            if vuln.get("code_file"):
-                lines.append(f"**File:** {vuln['code_file']}")
+            for i, loc in enumerate(vuln["code_locations"]):
+                file_ref = loc.get("file", "unknown")
+                line_ref = ""
+                if loc.get("start_line") is not None:
+                    if loc.get("end_line") and loc["end_line"] != loc["start_line"]:
+                        line_ref = f" (lines {loc['start_line']}-{loc['end_line']})"
+                    else:
+                        line_ref = f" (line {loc['start_line']})"
+                lines.append(f"**Location {i + 1}:** `{file_ref}`{line_ref}")
+                if loc.get("label"):
+                    lines.append(f"  {loc['label']}")
+                if loc.get("snippet"):
+                    lines.append(f"```\n{loc['snippet']}\n```")
+                if loc.get("fix_before") or loc.get("fix_after"):
+                    lines.append("**Suggested Fix:**")
+                    lines.append("```diff")
+                    if loc.get("fix_before"):
+                        lines.extend(f"- {line}" for line in loc["fix_before"].splitlines())
+                    if loc.get("fix_after"):
+                        lines.extend(f"+ {line}" for line in loc["fix_after"].splitlines())
+                    lines.append("```")
                 lines.append("")
-            if vuln.get("code_diff"):
-                lines.append("**Changes:**")
-                lines.append("```diff")
-                lines.append(vuln["code_diff"])
-                lines.append("```")
 
         # Remediation
         if vuln.get("remediation_steps"):
@@ -673,7 +687,7 @@ class StrixTUIApp(App):  # type: ignore[misc]
     CSS_PATH = "assets/tui_styles.tcss"
     ALLOW_SELECT = True
 
-    SIDEBAR_MIN_WIDTH = 140
+    SIDEBAR_MIN_WIDTH = 120
 
     selected_agent_id: reactive[str | None] = reactive(default=None)
     show_splash: reactive[bool] = reactive(default=True)
@@ -815,11 +829,11 @@ class StrixTUIApp(App):  # type: ignore[misc]
             agents_tree.guide_style = "dashed"
 
             stats_display = Static("", id="stats_display")
-            stats_display.ALLOW_SELECT = False
+            stats_scroll = VerticalScroll(stats_display, id="stats_scroll")
 
             vulnerabilities_panel = VulnerabilitiesPanel(id="vulnerabilities_panel")
 
-            sidebar = Vertical(agents_tree, vulnerabilities_panel, stats_display, id="sidebar")
+            sidebar = Vertical(agents_tree, vulnerabilities_panel, stats_scroll, id="sidebar")
 
             content_container.mount(chat_area_container)
             content_container.mount(sidebar)
@@ -1258,6 +1272,9 @@ class StrixTUIApp(App):  # type: ignore[misc]
         if not self._is_widget_safe(stats_display):
             return
 
+        if self.screen.selections:
+            return
+
         stats_content = Text()
 
         stats_text = build_tui_stats_text(self.tracer, self.agent_config)
@@ -1267,15 +1284,7 @@ class StrixTUIApp(App):  # type: ignore[misc]
         version = get_package_version()
         stats_content.append(f"\nv{version}", style="white")
 
-        from rich.panel import Panel
-
-        stats_panel = Panel(
-            stats_content,
-            border_style="#333333",
-            padding=(0, 1),
-        )
-
-        self._safe_widget_operation(stats_display.update, stats_panel)
+        self._safe_widget_operation(stats_display.update, stats_content)
 
     def _update_vulnerabilities_panel(self) -> None:
         """Update the vulnerabilities panel with current vulnerability data."""
